@@ -1,84 +1,56 @@
 import java.io.File
 
 data class PlotLog(
-    val bufferSize: Int,
-    val tempDir1: String,
-    val tempDir2: String,
-    val buckets: Int,
-    val threads: Int,
-    val p1Seconds: Int,
-    val p2Seconds: Int,
-    val p3Seconds: Int,
-    val p4Seconds: Int,
-    val totalSeconds: Int,
-    val lastModified: Long,
+    private val parsedLog: Map<InterestingLogLines, String>
 ) {
+    val bufferSize: Int = parsedLog[InterestingLogLines.BUFFER_SIZE]!!.toInt()
+    val tempDir1: String = parsedLog[InterestingLogLines.TEMP_DIR_1]!!
+    val tempDir2: String = parsedLog[InterestingLogLines.TEMP_DIR_2]!!
+    val buckets: Int = parsedLog[InterestingLogLines.BUCKETS]!!.toInt()
+    val threads: Int = parsedLog[InterestingLogLines.THREADS]!!.toInt()
+    val p1Seconds: Int = parsedLog[InterestingLogLines.P1_SECONDS]!!.toInt()
+    val p2Seconds: Int = parsedLog[InterestingLogLines.P2_SECONDS]!!.toInt()
+    val p3Seconds: Int = parsedLog[InterestingLogLines.P3_SECONDS]!!.toInt()
+    val p4Seconds: Int = parsedLog[InterestingLogLines.P4_SECONDS]!!.toInt()
+    val totalSeconds: Int = parsedLog[InterestingLogLines.TOTAL_SECONDS]!!.toInt()
+    val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
+
     companion object {
-        private fun fileToMap(logFile: File) = logFile.readLines()
-            .filter { !it.startsWith("\t") }
-            .map { it.trim() }
-            .fold(
-                mutableMapOf(
-                    PKs.LAST_MODIFIED to logFile.lastModified().toString()
-                )
-            ) { agg, line ->
-                lineParser.forEach { (pk, reg) ->
-                    reg.find(line)?.let { matchResult ->
-                        agg[pk] = matchResult.groupValues[1]
-                    }
-                }
-                agg
-            }
-
-        private fun mapToObject(logMap: MutableMap<PKs, String>): PlotLog? =
-            if (logMap.containsKey(PKs.TOTAL_SECONDS)) {
-                PlotLog(
-                    bufferSize = logMap[PKs.BUFFER_SIZE]!!.toInt(),
-                    tempDir1 = logMap[PKs.TEMP_DIR_1]!!,
-                    tempDir2 = logMap[PKs.TEMP_DIR_2]!!,
-                    buckets = logMap[PKs.BUCKETS]!!.toInt(),
-                    threads = logMap[PKs.THREADS]!!.toInt(),
-                    p1Seconds = logMap[PKs.P1_SECONDS]!!.toInt(),
-                    p2Seconds = logMap[PKs.P2_SECONDS]!!.toInt(),
-                    p3Seconds = logMap[PKs.P3_SECONDS]!!.toInt(),
-                    p4Seconds = logMap[PKs.P4_SECONDS]!!.toInt(),
-                    totalSeconds = logMap[PKs.TOTAL_SECONDS]!!.toInt(),
-                    lastModified = logMap[PKs.LAST_MODIFIED]!!.toLong(),
-                )
-            } else {
-                null
-            }
-
-        fun of(logFile: File): PlotLog? {
-            require(logFile.isFile && logFile.canRead()) { "Unable to read log file '${logFile.absolutePath}'" }
-            return mapToObject(fileToMap(logFile))
-        }
-
-        private enum class PKs {
-            BUFFER_SIZE,
-            TEMP_DIR_1,
-            TEMP_DIR_2,
-            BUCKETS,
-            THREADS,
-            P1_SECONDS,
-            P2_SECONDS,
-            P3_SECONDS,
-            P4_SECONDS,
-            TOTAL_SECONDS,
+        enum class InterestingLogLines(val pattern: Regex? = null) {
+            BUFFER_SIZE("^Buffer size is: (\\d+)MiB$".toRegex()),
+            TEMP_DIR_1("^Starting plotting progress into temporary dirs: (.+) and (?:.+)$".toRegex()),
+            TEMP_DIR_2("^Starting plotting progress into temporary dirs: (?:.+) and (.+)$".toRegex()),
+            BUCKETS("Using (\\d+) buckets".toRegex()),
+            THREADS("^Using (\\d+) threads".toRegex()),
+            P1_SECONDS("^Time for phase 1 = (\\d+)".toRegex()),
+            P2_SECONDS("^Time for phase 2 = (\\d+)".toRegex()),
+            P3_SECONDS("^Time for phase 3 = (\\d+)".toRegex()),
+            P4_SECONDS("^Time for phase 4 = (\\d+)".toRegex()),
+            TOTAL_SECONDS("Total time = (\\d+)".toRegex()),
             LAST_MODIFIED,
         }
 
-        private val lineParser: Map<PKs, Regex> = mapOf(
-            PKs.BUFFER_SIZE to "^Buffer size is: (\\d+)MiB$".toRegex(),
-            PKs.TEMP_DIR_1 to "^Starting plotting progress into temporary dirs: (.+) and (?:.+)$".toRegex(),
-            PKs.TEMP_DIR_2 to "^Starting plotting progress into temporary dirs: (?:.+) and (.+)$".toRegex(),
-            PKs.BUCKETS to "Using (\\d+) buckets".toRegex(),
-            PKs.THREADS to "^Using (\\d+) threads".toRegex(),
-            PKs.P1_SECONDS to "^Time for phase 1 = (\\d+)".toRegex(),
-            PKs.P2_SECONDS to "^Time for phase 2 = (\\d+)".toRegex(),
-            PKs.P3_SECONDS to "^Time for phase 3 = (\\d+)".toRegex(),
-            PKs.P4_SECONDS to "^Time for phase 4 = (\\d+)".toRegex(),
-            PKs.TOTAL_SECONDS to "Total time = (\\d+)".toRegex(),
-        )
+        fun of(logFile: File): PlotLog? {
+            require(logFile.isFile && logFile.canRead()) { "Unable to read log file '${logFile.absolutePath}'" }
+
+            val logMap = logFile.readLines()
+                .filter { !it.startsWith("\t") }
+                .map { it.trim() }
+                .fold(
+                    mutableMapOf(
+                        InterestingLogLines.LAST_MODIFIED to logFile.lastModified().toString()
+                    )
+                ) { agg, line ->
+                    InterestingLogLines.values().forEach { ill ->
+                        ill.pattern?.find(line)?.let { agg[ill] = it.groupValues[1] }
+                    }
+                    agg
+                }
+            if (!logMap.containsKey(InterestingLogLines.TOTAL_SECONDS)) {
+                return null
+            }
+            return PlotLog(logMap)
+        }
     }
 }
+
