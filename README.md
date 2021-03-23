@@ -14,3 +14,15 @@ which is great for sharing at reddit.com/r/chia
 I welcome additions!
 
 Start the Tractor: `kotlinc -script ./src/main/kotlin/tractor.kts`
+
+```
+Found 30 logs.
+# All temp paths:
+  Temp Dir: /media/me/FAST2/chia-temp = average time 10.09h across 9 plot(s).
+  Temp Dir: /media/me/BIG/chia-temp = average time 11.452h across 12 plot(s).
+  Temp Dir: /media/me/FAST1/chia-temp = average time 10.011h across 9 plot(s).
+# Most Recent temp paths:
+  Temp Dir: /media/me/FAST2/chia-temp = average time 10.508h across 1 plot(s).
+  Temp Dir: /media/me/BIG/chia-temp = average time 11.582h across 1 plot(s).
+  Temp Dir: /media/me/FAST1/chia-temp = average time 10.42h across 1 plot(s).
+```
