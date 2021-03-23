@@ -17,13 +17,17 @@ Start the Tractor: `kotlinc ./src/main/kotlin/*.kt -d tractor.jar && kotlin -cla
 Example output:
 
 ```
-Found 12 logs.
+Found 39 completed logs.
 # All temp paths:
-  Temp Dir: FAST2/chia-temp = average time 10.09h across 3 plot(s).
-  Temp Dir: BIG/chia-temp = average time 11.452h across 6 plot(s).
-  Temp Dir: FAST1/chia-temp = average time 10.011h across 3 plot(s).
+  Temp Dir: BIG/chia-temp = average time 12.1h across 19 plot(s).
+  Temp Dir: FAST1/chia-temp = average time 10.1h across 10 plot(s).
+  Temp Dir: FAST2/chia-temp = average time 10.2h across 10 plot(s).
 # Most Recent temp paths:
-  Temp Dir: FAST2/chia-temp = average time 10.508h across 1 plot(s).
-  Temp Dir: BIG/chia-temp = average time 11.582h across 1 plot(s).
-  Temp Dir: FAST1/chia-temp = average time 10.42h across 1 plot(s).
+  Temp Dir: BIG/chia-temp = average time 12.8h across 1 plot(s).
+  Temp Dir: FAST1/chia-temp = average time 11.1h across 1 plot(s).
+  Temp Dir: FAST2/chia-temp = average time 11.1h across 1 plot(s).
+# Parallel plot rate over last 4 days
+  Temp Dir: BIG/chia-temp = 4.8 plots/day
+  Temp Dir: FAST1/chia-temp = 2.0 plots/day
+  Temp Dir: FAST2/chia-temp = 2.0 plots/day
 ```
