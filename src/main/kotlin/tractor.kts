@@ -1,4 +1,8 @@
 import java.io.File
+import java.math.BigDecimal
+import java.math.RoundingMode
+
+fun Double.round(scale: Int = 1) = BigDecimal(this).setScale(scale, RoundingMode.HALF_UP).toDouble()
 
 data class PlotLog(
     val bufferSize: Int,
@@ -82,5 +86,33 @@ data class PlotLog(
             PKs.P4_SECONDS to "^Time for phase 4 = (\\d+)".toRegex(),
             PKs.TOTAL_SECONDS to "Total time = (\\d+)".toRegex(),
         )
+    }
+}
+
+
+println("Hello Chia!")
+
+val plotLogDir = File(
+    listOf(
+        System.getProperty("user.home"),
+        ".chia",
+        "mainnet",
+        "plotter",
+    ).joinToString(File.separator)
+).also { require(it.isDirectory) { "Unable to load log directory '${it.absolutePath}'" } }
+
+val plotLogs = plotLogDir.walk().filter { it.isFile && it.canRead() }.mapNotNull(PlotLog::of).toList()
+println("Found ${plotLogs.size} logs.")
+
+listOf("All", "Most Recent").forEach { surveyType ->
+    println("# $surveyType temp paths:")
+    plotLogs.groupBy { it.tempDir1 }.forEach { (tmpDir1, plots) ->
+        val samplePlots = if (surveyType == "All") {
+            plots
+        } else {
+            plots.sortedBy { it.lastModified }.takeLast(1)
+        }
+        val hours = (samplePlots.map { it.totalSeconds }.toIntArray().average() / (60 * 60)).round(3)
+        println("  Temp Dir: $tmpDir1 = average time ${hours}h across ${samplePlots.size} plot(s).")
     }
 }
