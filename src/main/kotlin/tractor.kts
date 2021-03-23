@@ -89,7 +89,6 @@ data class PlotLog(
     }
 }
 
-
 println("Hello Chia!")
 
 val plotLogDir = File(
