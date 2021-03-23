@@ -23,7 +23,7 @@ tasks.withType<KotlinCompile>().configureEach {
 }
 
 application {
-    mainClassName = "MainKt"
+    mainClassName = "TractorKt"
 }
 
 
