@@ -1,4 +1,5 @@
 import java.io.File
+import java.util.*
 
 fun main() {
     println("Starting up the Chia Tractor")
@@ -16,6 +17,7 @@ fun main() {
     println("Found ${plotLogs.size} completed logs.")
     val commonPrefix = plotLogs.map { it.tempDir1 }.commonPrefix()
 
+    // Generic timing per plot
     listOf("All", "Most Recent").forEach { surveyType ->
         println("# $surveyType temp paths:")
         plotLogs
@@ -32,5 +34,15 @@ fun main() {
             }
     }
 
+    val daysInMs = 1000 * 60 * 60 * 24
+    val numberOfDays = 4
+    println("# Parallel plot rate over last $numberOfDays days")
+    val fewDaysAgoMs = System.currentTimeMillis() - (numberOfDays*daysInMs)
+    plotLogs.filter { it.lastModified > fewDaysAgoMs }
+        .groupBy { it.tempDir1.removePrefix(commonPrefix) }
+        .toSortedMap()
+        .forEach { (tmpDir1, plots) ->
+            println("  Temp Dir: $tmpDir1 = ${(plots.size/numberOfDays.toDouble()).round()} plots/day")
+        }
 }
 
