@@ -12,7 +12,11 @@ at [r/chia](https://reddit.com/r/chia)
 
 Pull requests welcome!  I don't subdivide by platting stages, but should.
 
-Start the Tractor: `kotlinc ./src/main/kotlin/*.kt -d tractor.jar && kotlin -classpath tractor.jar TractorKt`
+Build and Start the Tractor:
+```
+test ! -e ./tractor.jar && kotlinc ./src/main/kotlin/*.kt -d ./tractor.jar
+kotlin -classpath ./tractor.jar TractorKt
+```
 
 Example output:
 
