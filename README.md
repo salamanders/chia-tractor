@@ -12,9 +12,23 @@ at [r/chia](https://reddit.com/r/chia)
 
 Pull requests welcome!  I don't subdivide by platting stages, but should.
 
-Build and Start the Tractor:
+## Build and Start the Tractor
+
+1. Install your tractor making tools (JRE and Kotlin)
+
+  * Ubuntu: `sudo snap install kotlin --classic`
+  * Mac: `brew install kotlin`
+  * Windows: Easier to go with IntelliJ
+
+2. Weld together the Tractor from a bucket of bolts
 ```
-test ! -e ./tractor.jar && kotlinc ./src/main/kotlin/*.kt -d ./tractor.jar
+git clone https://github.com/salamanders/chia-tractor/
+cd chia-tractor
+kotlinc ./src/main/kotlin/*.kt -d ./tractor.jar
+```
+
+3. Drive around in your Tractor as often as you like!
+```
 kotlin -classpath ./tractor.jar TractorKt
 ```
 
