@@ -252,3 +252,4 @@ $RECYCLE.BIN/
 /build/
 /.idea/
 /gradle/
+tractor.jar

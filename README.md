@@ -24,12 +24,12 @@ Pull requests welcome!  I don't subdivide by platting stages, but should.
 ```
 git clone https://github.com/salamanders/chia-tractor/
 cd chia-tractor
-kotlinc ./src/main/kotlin/*.kt -d ./tractor.jar
+kotlinc -jvm-target 9 ./src/main/kotlin/* -d ./tractor.jar
 ```
 
 3. Drive around in your Tractor as often as you like!
 ```
-kotlin -classpath ./tractor.jar TractorKt
+kotlin -classpath ./tractor.jar net.fixables.chiatractor.TractorKt
 ```
 
 Example output:

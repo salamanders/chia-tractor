@@ -1,3 +1,5 @@
+package net.fixables.chiatractor
+
 import java.io.File
 
 fun main() {
