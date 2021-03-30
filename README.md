@@ -7,25 +7,28 @@ _A tractor to help you dig in your plotting logs._
 This is a short script written in Kotlin that digs through the plotting logs and saves the number of seconds that
 various steps took, as well as some of the more important plotting parameters.
 
+If you have been running plotting from the command line, 
+**your logs aren't saved anywhere!** (sorry about that.)
+If you have been plotting from the UI, this app should find your logs in 
+`$USER_HOME/.chia/mainnet/plotter/`
+
 Currently, it spits out average plot times per temp disk, which is great for sharing
 at [r/chia](https://reddit.com/r/chia)
 
-Pull requests welcome!  I don't subdivide by platting stages, but should.
+Pull requests welcome!  I don't subdivide by plotting stages, but should.
 
 ## Build and Start the Tractor
 
+0. Easiest: Install IntelliJ Community Edition.  If you want to go lightweight or command-line...
 1. Install your tractor making tools (JRE and Kotlin)
-
-  * Ubuntu: `sudo snap install kotlin --classic`
-  * Mac: `brew install kotlin`
-  * Windows: Easier to go with IntelliJ
-
+    * Ubuntu: `sudo snap install openjdk & sudo snap install kotlin --classic`
+    * Mac: `brew install kotlin`
+    * Windows: Easier to go with IntelliJ
 2. Weld together the Tractor from a bucket of bolts
 ```
 git clone https://github.com/salamanders/chia-tractor/
 cd chia-tractor
-kotlinc -jvm-target 9 \
- src/main/kotlin/net/fixables/chiatractor/utils.kt \
+kotlinc -include-runtime -jvm-target 1.8 \
  src/main/kotlin/net/fixables/chiatractor/PlotLog.kt \
  src/main/kotlin/net/fixables/chiatractor/Tractor.kt \
  -d ./tractor.jar

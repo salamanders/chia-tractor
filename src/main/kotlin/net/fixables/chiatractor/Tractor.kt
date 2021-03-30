@@ -1,49 +1,69 @@
 package net.fixables.chiatractor
 
-import java.io.File
+import java.math.BigDecimal
+import java.math.RoundingMode
+import kotlin.time.ExperimentalTime
+import kotlin.time.days
 
 fun main() {
     println("Starting up the Chia Tractor")
+    val allPlotLogs = PlotLog.loadLogs()
+    val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
 
-    val plotLogDir = File(
-        listOf(
-            System.getProperty("user.home"),
-            ".chia",
-            "mainnet",
-            "plotter",
-        ).joinToString(File.separator)
-    ).also { require(it.isDirectory) { "Unable to load log directory '${it.absolutePath}'" } }
+    println("Found ${allPlotLogs.size} total logs, ${completedLogs.size} completed logs.")
+    completionTimes(completedLogs)
+    parallelRate(completedLogs)
+    dumpAllLogs(allPlotLogs)
+}
 
-    val plotLogs = plotLogDir.walk().filter { it.isFile && it.canRead() }.mapNotNull(PlotLog::of).toList()
-    println("Found ${plotLogs.size} completed logs.")
-    val commonPrefix = plotLogs.map { it.tempDir1 }.commonPrefix()
-
-    // Generic timing per plot
-    listOf("All", "Most Recent").forEach { surveyType ->
-        println("# $surveyType temp paths:")
-        plotLogs
-            .groupBy { it.tempDir1.removePrefix(commonPrefix) }
-            .toSortedMap()
-            .forEach { (tmpDir1, plots) ->
-                val samplePlots = if (surveyType == "All") {
-                    plots
-                } else {
-                    plots.sortedBy { it.lastModified }.takeLast(1)
-                }
-                val hours = (samplePlots.map { it.totalSeconds }.toIntArray().average() / (60 * 60)).round(1)
-                println("  Temp Dir: $tmpDir1 = average time ${hours}h across ${samplePlots.size} plot(s).")
-            }
+fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
+    println()
+    printtsv(PlotLog.asListHeaders().toTypedArray())
+    allPlotLogs.forEach {
+        printtsv(*it.asList().toTypedArray())
     }
+}
 
-
-    val numberOfDays = 4
-    println("# Parallel plot rate over last $numberOfDays days")
-    val fewDaysAgoMs = System.currentTimeMillis() - (numberOfDays * DAYS_IN_MS)
+/**
+ * A few days so we get some sense of parallel per day
+ */
+@OptIn(ExperimentalTime::class)
+fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
+    println()
+    printtsv("Temp Dir", "plots/day over last $numberOfDays days")
+    val fewDaysAgoMs = System.currentTimeMillis() - numberOfDays.days.inMilliseconds
     plotLogs.filter { it.lastModified > fewDaysAgoMs }
-        .groupBy { it.tempDir1.removePrefix(commonPrefix) }
+        .groupBy { it.tempDir1 }
         .toSortedMap()
         .forEach { (tmpDir1, plots) ->
-            println("  Temp Dir: $tmpDir1 = ${(plots.size / numberOfDays.toDouble()).round()} plots/day")
+            printtsv(tmpDir1, plots.size / numberOfDays.toDouble())
         }
 }
 
+/**
+ * Generic timing per plot
+ */
+@OptIn(ExperimentalTime::class)
+fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
+    println()
+    printtsv("Temp Dir", "Total Completed", "Average (h)", "Most Recent (h)")
+    plotLogs
+        .groupBy { it.tempDir1 }
+        .toSortedMap()
+        .forEach { (tmpDir1, plots) ->
+            val avg = plots.map { it.totalDuration.inHours }.average()
+            val mostRecent = plots.maxByOrNull { it.lastModified }!!.totalDuration.inHours
+            printtsv(tmpDir1, plots.size, avg, mostRecent)
+        }
+}
+
+internal fun printtsv(vararg elt: Any) = println(
+    elt.map {
+        when (it) {
+            is Double -> it.round(1)
+            else -> elt
+        }
+    }.joinToString("\t")
+)
+
+internal fun Double.round(scale: Int = 1) = BigDecimal(this).setScale(scale, RoundingMode.HALF_UP).toDouble()
