@@ -18,10 +18,11 @@ fun main() {
 }
 
 fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
+    require(allPlotLogs.isNotEmpty()) { "No plot logs found."}
     println()
-    printtsv(PlotLog.asListHeaders())
+    printtsv(allPlotLogs.first().asMap().keys)
     allPlotLogs.forEach {
-        printtsv(it.asList())
+        printtsv(it.asMap().values)
     }
 }
 

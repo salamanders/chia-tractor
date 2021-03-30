@@ -5,6 +5,7 @@ package net.fixables.chiatractor
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.readLines
 import kotlin.streams.toList
@@ -26,35 +27,21 @@ open class PlotLog(
     open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()?.seconds
     val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
 
-    fun asList() = listOf(
-        tempDir1,
-        tempDir2,
-        bufferSize / 1000.0,
-        buckets,
-        threads,
-        (System.currentTimeMillis() - lastModified).milliseconds.inHours,
-        p1Duration?.inHours ?: "",
-        p2Duration?.inHours ?: "",
-        p3Duration?.inHours ?: "",
-        p4Duration?.inHours ?: "",
-        totalDuration?.inHours ?: "",
+    fun asMap():SortedMap<String, Any> = sortedMapOf(
+        "tempDir1" to tempDir1,
+        "tempDir2" to tempDir2,
+        "bufferSizeGB" to bufferSize / 1000.0,
+        "buckets" to buckets,
+        "threads" to threads,
+        "lastModifiedMs" to lastModified,
+        "p1H" to (p1Duration?.inHours ?: ""),
+        "p2H" to (p2Duration?.inHours ?: ""),
+        "p3H" to (p3Duration?.inHours ?: ""),
+        "p4H" to (p4Duration?.inHours ?: ""),
+        "totalH" to (totalDuration?.inHours ?: ""),
     )
 
     companion object {
-        fun asListHeaders() = listOf(
-            "tempDir1",
-            "tempDir2",
-            "bufferSizeGB",
-            "buckets",
-            "threads",
-            "lastModifiedAgoH",
-            "p1H",
-            "p2H",
-            "p3H",
-            "p4H",
-            "totalH",
-        )
-
         fun loadLogs(
             plotLogDir: Path = Paths.get(
                 System.getProperty("user.home"),
