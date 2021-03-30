@@ -8,9 +8,7 @@ import java.nio.file.Paths
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.readLines
 import kotlin.streams.toList
-import kotlin.time.Duration
-import kotlin.time.ExperimentalTime
-import kotlin.time.seconds
+import kotlin.time.*
 
 @OptIn(ExperimentalTime::class, ExperimentalPathApi::class)
 open class PlotLog(
@@ -31,45 +29,31 @@ open class PlotLog(
     fun asList() = listOf(
         tempDir1,
         tempDir2,
-        bufferSize,
+        bufferSize / 1000.0,
         buckets,
         threads,
-        lastModified,
-        p1Duration ?: "",
-        p2Duration ?: "",
-        p3Duration ?: "",
-        p4Duration ?: "",
-        totalDuration ?: "",
+        (System.currentTimeMillis() - lastModified).milliseconds.inHours,
+        p1Duration?.inHours ?: "",
+        p2Duration?.inHours ?: "",
+        p3Duration?.inHours ?: "",
+        p4Duration?.inHours ?: "",
+        totalDuration?.inHours ?: "",
     )
 
     companion object {
         fun asListHeaders() = listOf(
             "tempDir1",
             "tempDir2",
-            "bufferSize",
+            "bufferSizeGB",
             "buckets",
             "threads",
-            "lastModified",
-            "p1Duration",
-            "p2Duration",
-            "p3Duration",
-            "p4Duration",
-            "totalDuration",
+            "lastModifiedAgoH",
+            "p1H",
+            "p2H",
+            "p3H",
+            "p4H",
+            "totalH",
         )
-
-        enum class InterestingLogLines(val pattern: Regex? = null) {
-            BUFFER_SIZE("^Buffer size is: (\\d+)MiB$".toRegex()),
-            TEMP_DIR_1("^Starting plotting progress into temporary dirs: (.+) and .+$".toRegex()),
-            TEMP_DIR_2("^Starting plotting progress into temporary dirs: .+ and (.+)$".toRegex()),
-            BUCKETS("Using (\\d+) buckets".toRegex()),
-            THREADS("^Using (\\d+) threads".toRegex()),
-            P1_SECONDS("^Time for phase 1 = (\\d+)".toRegex()),
-            P2_SECONDS("^Time for phase 2 = (\\d+)".toRegex()),
-            P3_SECONDS("^Time for phase 3 = (\\d+)".toRegex()),
-            P4_SECONDS("^Time for phase 4 = (\\d+)".toRegex()),
-            TOTAL_SECONDS("Total time = (\\d+)".toRegex()),
-            LAST_MODIFIED,
-        }
 
         fun loadLogs(
             plotLogDir: Path = Paths.get(
@@ -83,6 +67,10 @@ open class PlotLog(
             return Files.walk(plotLogDir, 1)
                 .filter { Files.isRegularFile(it) && Files.isReadable(it) }
                 .map(PlotLog::pathToPlotLog)
+                .filter {
+                    // Either it completed, or it is recent.  (discard abandoned plotting)
+                    it is CompletedPlotLog || (System.currentTimeMillis() - it.lastModified).milliseconds < 2.days
+                }
                 .toList()
         }
 
@@ -102,7 +90,7 @@ open class PlotLog(
                     }
                     agg
                 }
-            return if (logMap.containsKey(Companion.InterestingLogLines.TOTAL_SECONDS)) {
+            return if (logMap.containsKey(InterestingLogLines.TOTAL_SECONDS)) {
                 CompletedPlotLog(logMap)
             } else {
                 PlotLog(logMap)
@@ -111,8 +99,22 @@ open class PlotLog(
     }
 }
 
+enum class InterestingLogLines(val pattern: Regex? = null) {
+    BUFFER_SIZE("^Buffer size is: (\\d+)MiB$".toRegex()),
+    TEMP_DIR_1("^Starting plotting progress into temporary dirs: (.+) and .+$".toRegex()),
+    TEMP_DIR_2("^Starting plotting progress into temporary dirs: .+ and (.+)$".toRegex()),
+    BUCKETS("Using (\\d+) buckets".toRegex()),
+    THREADS("^Using (\\d+) threads".toRegex()),
+    P1_SECONDS("^Time for phase 1 = (\\d+)".toRegex()),
+    P2_SECONDS("^Time for phase 2 = (\\d+)".toRegex()),
+    P3_SECONDS("^Time for phase 3 = (\\d+)".toRegex()),
+    P4_SECONDS("^Time for phase 4 = (\\d+)".toRegex()),
+    TOTAL_SECONDS("Total time = (\\d+)".toRegex()),
+    LAST_MODIFIED,
+}
+
 @OptIn(ExperimentalTime::class)
-class CompletedPlotLog(parsedLog: Map<Companion.InterestingLogLines, String>) : PlotLog(parsedLog) {
+class CompletedPlotLog(parsedLog: Map<InterestingLogLines, String>) : PlotLog(parsedLog) {
     override val p1Duration: Duration = super.p1Duration!!
     override val p2Duration: Duration = super.p2Duration!!
     override val p3Duration: Duration = super.p3Duration!!
