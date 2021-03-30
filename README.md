@@ -21,24 +21,19 @@ Pull requests welcome!  I don't subdivide by plotting stages, but should.
 
 0. Easiest: Install IntelliJ Community Edition.  If you want to go lightweight or command-line...
 1. Install your tractor making tools (JRE and Kotlin)
-    * Ubuntu: `sudo snap install openjdk & sudo snap install kotlin --classic`
+    * Ubuntu: `sudo snap install openjdk & sudo snap install kotlin --classic & sudo apt install maven`
     * Mac: `brew install kotlin`
     * Windows: Easier to go with IntelliJ
 2. Weld together the Tractor from a bucket of bolts
 ```
 git clone https://github.com/salamanders/chia-tractor/
 cd chia-tractor
-
-# Either you can compile it from here, or skip this step and trust some random stranger. 
-kotlinc -include-runtime -jvm-target 1.8 \
- src/main/kotlin/net/fixables/chiatractor/PlotLog.kt \
- src/main/kotlin/net/fixables/chiatractor/Tractor.kt \
- -d ./tractor.jar
+mvn package
 ```
 
 3. Drive around in your Tractor as often as you like!
 ```
-kotlin -classpath ./tractor.jar net.fixables.chiatractor.TractorKt
+kotlin -classpath ./target/consoleApp-1.0-SNAPSHOT-jar-with-dependencies.jar net.fixables.chiatractor.TractorKt
 ```
 
 Example output:

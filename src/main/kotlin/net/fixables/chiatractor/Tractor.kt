@@ -7,6 +7,7 @@ import kotlin.time.days
 
 fun main() {
     println("Starting up the Chia Tractor")
+
     val allPlotLogs = PlotLog.loadLogs()
     val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
 
@@ -18,9 +19,9 @@ fun main() {
 
 fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
     println()
-    printtsv(PlotLog.asListHeaders().toTypedArray())
+    printtsv(PlotLog.asListHeaders())
     allPlotLogs.forEach {
-        printtsv(*it.asList().toTypedArray())
+        printtsv(it.asList())
     }
 }
 
@@ -57,13 +58,18 @@ fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
         }
 }
 
-internal fun printtsv(vararg elt: Any) = println(
-    elt.joinToString("\t") {
-        when (it) {
-            is Double -> it.round(1)
-            else -> elt
-        }.toString()
+internal fun printtsv(vararg elts: Any?) {
+    if (elts.size == 1 && elts[0] is Collection<Any?>) {
+        return printtsv(*(elts[0] as Collection<Any?>).toTypedArray())
     }
-)
+    return println(
+        elts.joinToString("\t") {
+            when (it) {
+                is Double -> it.round(1)
+                else -> it
+            }.toString()
+        }
+    )
+}
 
 internal fun Double.round(scale: Int = 1) = BigDecimal(this).setScale(scale, RoundingMode.HALF_UP).toDouble()
