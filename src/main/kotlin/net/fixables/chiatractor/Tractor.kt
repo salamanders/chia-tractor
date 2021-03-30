@@ -58,12 +58,12 @@ fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
 }
 
 internal fun printtsv(vararg elt: Any) = println(
-    elt.map {
+    elt.joinToString("\t") {
         when (it) {
             is Double -> it.round(1)
             else -> elt
-        }
-    }.joinToString("\t")
+        }.toString()
+    }
 )
 
 internal fun Double.round(scale: Int = 1) = BigDecimal(this).setScale(scale, RoundingMode.HALF_UP).toDouble()
