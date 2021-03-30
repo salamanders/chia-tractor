@@ -28,6 +28,8 @@ Pull requests welcome!  I don't subdivide by plotting stages, but should.
 ```
 git clone https://github.com/salamanders/chia-tractor/
 cd chia-tractor
+
+# Either you can compile it from here, or skip this step and trust some random stranger. 
 kotlinc -include-runtime -jvm-target 1.8 \
  src/main/kotlin/net/fixables/chiatractor/PlotLog.kt \
  src/main/kotlin/net/fixables/chiatractor/Tractor.kt \
