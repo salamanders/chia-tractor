@@ -49,6 +49,11 @@
                         </goals>
                     </execution>
                 </executions>
+                <configuration>
+                    <args>
+                        <arg>-Xopt-in=net.fixables.chiatractor.OptInAnnotation</arg>
+                    </args>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
@@ -94,6 +99,15 @@
             <artifactId>kotlin-stdlib-jdk8</artifactId>
             <version>1.4.21</version>
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-core -->
+        <dependency>
+            <groupId>org.jetbrains.kotlinx</groupId>
+            <artifactId>kotlinx-coroutines-core</artifactId>
+            <version>1.4.3</version>
+            <type>pom</type>
+        </dependency>
+
     </dependencies>
 
 </project>

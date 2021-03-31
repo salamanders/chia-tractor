@@ -2,6 +2,8 @@ package net.fixables.chiatractor
 
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.nio.file.Files
+import java.nio.file.Path
 import kotlin.time.ExperimentalTime
 import kotlin.time.days
 
@@ -10,15 +12,25 @@ fun main() {
 
     val allPlotLogs = PlotLog.loadLogs()
     val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
-
     println("Found ${allPlotLogs.size} total logs, ${completedLogs.size} completed logs.")
     completionTimes(completedLogs)
     parallelRate(completedLogs)
     dumpAllLogs(allPlotLogs)
+
+    allPlotLogs
+        .map { Path.of(it.tempDir1) }
+        .distinctBy { it.toRealPath().toString() }
+        .filter { Files.exists(it) }
+        .let { tempDirs ->
+            println("Benchmarking ${tempDirs.size} locations.")
+            tempDirs.forEach {
+                benchmarkGrid(path = it)
+            }
+        }
 }
 
 fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
-    require(allPlotLogs.isNotEmpty()) { "No plot logs found."}
+    require(allPlotLogs.isNotEmpty()) { "No plot logs found." }
     println()
     printtsv(allPlotLogs.first().asMap().keys)
     allPlotLogs.forEach {

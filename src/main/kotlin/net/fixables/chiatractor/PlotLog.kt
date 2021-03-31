@@ -27,7 +27,7 @@ open class PlotLog(
     open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()?.seconds
     val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
 
-    fun asMap():SortedMap<String, Any> = sortedMapOf(
+    fun asMap(): SortedMap<String, Any> = sortedMapOf(
         "tempDir1" to tempDir1,
         "tempDir2" to tempDir2,
         "bufferSizeGB" to bufferSize / 1000.0,
