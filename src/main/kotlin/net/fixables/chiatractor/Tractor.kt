@@ -19,17 +19,17 @@ fun main() {
 
     allPlotLogs
         .map { Path.of(it.tempDir1) }
-        .distinctBy { it.toRealPath().toString() }
-        .filter { Files.exists(it) }
+        .distinctBy { Files.getFileStore(it.toRealPath()).name() }
+        .filter { Files.exists(it) && Files.isDirectory(it) && Files.isWritable(it) }
         .let { tempDirs ->
-            println("Benchmarking ${tempDirs.size} locations.")
+            println("Benchmarking ${tempDirs.size} file stores: ${tempDirs.joinToString(", ")}")
             tempDirs.forEach {
                 benchmarkGrid(path = it)
             }
         }
 }
 
-fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
+private fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
     require(allPlotLogs.isNotEmpty()) { "No plot logs found." }
     println()
     printtsv(allPlotLogs.first().asMap().keys)
@@ -42,7 +42,7 @@ fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
  * A few days so we get some sense of parallel per day
  */
 @OptIn(ExperimentalTime::class)
-fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
+private fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
     println()
     printtsv("Temp Dir", "plots/day over last $numberOfDays days")
     val fewDaysAgoMs = System.currentTimeMillis() - numberOfDays.days.inMilliseconds
@@ -58,7 +58,7 @@ fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) 
  * Generic timing per plot
  */
 @OptIn(ExperimentalTime::class)
-fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
+private fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
     println()
     printtsv("Temp Dir", "Total Completed", "Average (h)", "Most Recent (h)")
     plotLogs

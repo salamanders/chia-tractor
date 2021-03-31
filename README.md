@@ -33,6 +33,7 @@ mvn package
 
 3. Drive around in your Tractor as often as you like!
 ```
+export JAVA_OPTS="-Xmx8g"
 kotlin -classpath ./target/consoleApp-1.0-SNAPSHOT-jar-with-dependencies.jar net.fixables.chiatractor.TractorKt
 ```
 

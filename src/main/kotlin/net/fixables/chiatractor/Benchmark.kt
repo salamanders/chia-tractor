@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
@@ -16,31 +17,50 @@ import kotlin.time.milliseconds
 private const val BYTES_KB = 1024L
 private const val BYTES_MB = BYTES_KB * 1024L
 private const val BYTES_GB = BYTES_MB * 1024L
-fun benchmarkGrid(path: Path = Paths.get(".")) {
+
+fun benchmarkGrid(path: Path) {
     (1..16).shuffled().forEach { sharding ->
-        listOf(10, 50, 100).map { it * BYTES_MB }.shuffled().forEach { writeBlockSize ->
-            benchmark(path = path, sharding = sharding, writeBlockSize = writeBlockSize)
-        }
+        benchmark(
+            path = path,
+            sharding = sharding,
+        )
     }
 }
+
+private val headerPrinted = AtomicBoolean(false)
 
 @OptIn(ExperimentalTime::class)
 private fun benchmark(
     path: Path,
-    totalDataToWriteGB: Int = 10,
-    sharding: Int = 4,
-    writeBlockSize: Long = 25 * BYTES_MB
+    totalDataToWriteGB: Int = 1,
+    sharding: Int,
+    writeBlockSize: Long = 10 * BYTES_MB
 ) {
     require(Files.isDirectory(path)) { "Must be a directory: $path" }
     require(Files.isWritable(path)) { "Must be writable: $path" }
     require(sharding in 1..100) { "Sharding out of range (1..100)" }
+    require(totalDataToWriteGB > 0) { "totalDataToWriteGB out of range >0" }
     val totalDataToWriteBytes = totalDataToWriteGB * BYTES_GB
     val bytesPerShard = totalDataToWriteBytes / sharding
     val fileStore = Files.getFileStore(path.toRealPath())
     val usableSpace = fileStore.usableSpace
     println("FileStore: ${fileStore.name()}, Usable space: ${(usableSpace / BYTES_GB).toInt()}GB")
     check(usableSpace > totalDataToWriteBytes) { "Not enough free space." }
+    benchmarkValidated(
+        path = path,
+        bytesPerShard = bytesPerShard,
+        sharding = sharding,
+        writeBlockSize = writeBlockSize
+    )
+}
 
+@OptIn(ExperimentalTime::class)
+private fun benchmarkValidated(
+    path: Path,
+    bytesPerShard: Long,
+    sharding: Int,
+    writeBlockSize: Long
+) {
     runBlocking {
         val allFileWriters = (0 until sharding).map { shardNum ->
             createWriterAsync(
@@ -57,7 +77,10 @@ private fun benchmark(
             totalTime = allFileWriters.awaitAll().sumBy { it.inMilliseconds.toInt() }.milliseconds
         }
 
-        printtsv("path", "sharding", "writeBlockSize", "CPU Time (s)", "Wall Time (s)")
+        if (!headerPrinted.get()) {
+            printtsv("path", "sharding", "writeBlockSize", "CPU Time (s)", "Wall Time (s)")
+            headerPrinted.set(true)
+        }
         printtsv(
             path,
             sharding,
@@ -94,7 +117,10 @@ private fun CoroutineScope.createWriterAsync(
         }
         remainingBytes -= bytes.size
     }
-    check(Files.size(tempPath) == targetSizeBytes) { "Final size didn't match." }
+    tempPath.toFile().deleteOnExit() // In case next line fails
+    if (Files.size(tempPath) != targetSizeBytes) {
+        println("WARNING: Final size didn't match: file=${Files.size(tempPath)}, target=$targetSizeBytes")
+    }
     Files.delete(tempPath)
     totalDuration
 }
