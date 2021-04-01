@@ -17,6 +17,7 @@ fun main() {
     parallelRate(completedLogs)
     dumpAllLogs(allPlotLogs)
 
+    /*
     allPlotLogs
         .map { Path.of(it.tempDir1) }
         .distinctBy { Files.getFileStore(it.toRealPath()).name() }
@@ -27,6 +28,7 @@ fun main() {
                 benchmarkGrid(path = it)
             }
         }
+     */
 }
 
 private fun dumpAllLogs(allPlotLogs: List<PlotLog>) {

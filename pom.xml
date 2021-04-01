@@ -59,7 +59,8 @@
                 </executions>
                 <configuration>
                     <args>
-                        <arg>-Xopt-in=net.fixables.chiatractor.OptInAnnotation</arg>
+                        <arg>-Xopt-in=kotlin.RequiresOptIn</arg>
+                        <arg>-Xopt-in=kotlin.time.ExperimentalTime</arg>
                         <arg>-Xuse-ir</arg>
                     </args>
                 </configuration>

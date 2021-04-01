@@ -62,19 +62,7 @@ private fun benchmarkWrite(
             tempPath = path.resolve("${sharding}_${shardNum}_${bytesPerShard}.temp"),
         )
     }
-    val totalWriteTimeCPU: Duration
-    val totalWriteTimeWall = measureTime {
-        totalWriteTimeCPU = allFileWriters.awaitAll().sum()
-    }
 
-
-
-    val allFileSeekers = (0 until sharding).map { shardNum ->
-        createWriterAsync(
-            targetSizeBytes = bytesPerShard,
-            tempPath = path.resolve("${sharding}_${shardNum}_${bytesPerShard}.temp"),
-        )
-    }
     val totalWriteTimeCPU: Duration
     val totalWriteTimeWall = measureTime {
         totalWriteTimeCPU = allFileWriters.awaitAll().sum()
