@@ -2,17 +2,15 @@ package net.fixables.chiatractor
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
+import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 import java.nio.file.StandardOpenOption
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.random.Random
 import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
-import kotlin.time.milliseconds
-
 
 private const val BYTES_KB = 1024L
 private const val BYTES_MB = BYTES_KB * 1024L
@@ -27,14 +25,13 @@ fun benchmarkGrid(path: Path) {
     }
 }
 
-private val headerPrinted = AtomicBoolean(false)
+private val headerWritePrinted = AtomicBoolean(false)
 
 @OptIn(ExperimentalTime::class)
 private fun benchmark(
     path: Path,
     totalDataToWriteGB: Int = 1,
     sharding: Int,
-    writeBlockSize: Long = 10 * BYTES_MB
 ) {
     require(Files.isDirectory(path)) { "Must be a directory: $path" }
     require(Files.isWritable(path)) { "Must be writable: $path" }
@@ -46,77 +43,63 @@ private fun benchmark(
     val usableSpace = fileStore.usableSpace
     println("FileStore: ${fileStore.name()}, Usable space: ${(usableSpace / BYTES_GB).toInt()}GB")
     check(usableSpace > totalDataToWriteBytes) { "Not enough free space." }
-    benchmarkValidated(
+    benchmarkWrite(
         path = path,
         bytesPerShard = bytesPerShard,
         sharding = sharding,
-        writeBlockSize = writeBlockSize
     )
 }
 
 @OptIn(ExperimentalTime::class)
-private fun benchmarkValidated(
+private fun benchmarkWrite(
     path: Path,
     bytesPerShard: Long,
     sharding: Int,
-    writeBlockSize: Long
-) {
-    runBlocking {
-        val allFileWriters = (0 until sharding).map { shardNum ->
-            createWriterAsync(
-                targetSizeBytes = bytesPerShard,
-                tempPath = path.resolve("${sharding}_${shardNum}_${bytesPerShard}_${writeBlockSize}.temp"),
-                writeBlockSize = writeBlockSize,
-            )
-        }
-
-        check(allFileWriters.size == sharding) { "Error, wrong number of shards" }
-
-        val totalTime: Duration
-        val wallDuration = measureTime {
-            totalTime = allFileWriters.awaitAll().sumBy { it.inMilliseconds.toInt() }.milliseconds
-        }
-
-        if (!headerPrinted.get()) {
-            printtsv("path", "sharding", "writeBlockSize", "CPU Time (s)", "Wall Time (s)")
-            headerPrinted.set(true)
-        }
-        printtsv(
-            path,
-            sharding,
-            writeBlockSize,
-            totalTime.inSeconds,
-            wallDuration.inSeconds,
+) = runBlocking {
+    val allFileWriters = (0 until sharding).map { shardNum ->
+        createWriterAsync(
+            targetSizeBytes = bytesPerShard,
+            tempPath = path.resolve("${sharding}_${shardNum}_${bytesPerShard}.temp"),
         )
     }
+    val totalWriteTimeCPU: Duration
+    val totalWriteTimeWall = measureTime {
+        totalWriteTimeCPU = allFileWriters.awaitAll().sum()
+    }
+
+
+
+    val allFileSeekers = (0 until sharding).map { shardNum ->
+        createWriterAsync(
+            targetSizeBytes = bytesPerShard,
+            tempPath = path.resolve("${sharding}_${shardNum}_${bytesPerShard}.temp"),
+        )
+    }
+    val totalWriteTimeCPU: Duration
+    val totalWriteTimeWall = measureTime {
+        totalWriteTimeCPU = allFileWriters.awaitAll().sum()
+    }
+
+
+    if (!headerWritePrinted.get()) {
+        printtsv("path", "sharding", "Write CPU Time (s)", "Write Wall Time (s)")
+        headerWritePrinted.set(true)
+    }
+    printtsv(
+        path,
+        sharding,
+        totalWriteTimeCPU.inSeconds,
+        totalWriteTimeWall.inSeconds,
+    )
 }
+
 
 @ExperimentalTime
 private fun CoroutineScope.createWriterAsync(
     targetSizeBytes: Long,
     tempPath: Path,
-    writeBlockSize: Long,
 ) = async(context = IO, start = CoroutineStart.LAZY) {
-    var remainingBytes = targetSizeBytes
-    var totalDuration: Duration = Duration.ZERO
-    var bytes = ByteArray(writeBlockSize.toInt())
-    while (remainingBytes > 0) {
-        if (remainingBytes < writeBlockSize) {
-            // Should only happen once at the end
-            bytes = ByteArray(remainingBytes.toInt())
-        }
-        Random.nextBytes(bytes)
-        totalDuration += measureTime {
-            Files.write(
-                tempPath,
-                bytes,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND
-            )
-        }
-        remainingBytes -= bytes.size
-    }
+    val totalDuration = tempPath.fillWithRandomData(targetSizeBytes)
     tempPath.toFile().deleteOnExit() // In case next line fails
     if (Files.size(tempPath) != targetSizeBytes) {
         println("WARNING: Final size didn't match: file=${Files.size(tempPath)}, target=$targetSizeBytes")
@@ -125,7 +108,61 @@ private fun CoroutineScope.createWriterAsync(
     totalDuration
 }
 
+@OptIn(ExperimentalTime::class)
+private fun benchmarkSeekAndWrite(testDir: Path, trials: Int = 1_000): List<Duration> {
+    val largeFile = testDir.resolve("seek.temp")
+    largeFile.fillWithRandomData(100 * BYTES_MB)
+    largeFile.toFile().deleteOnExit()
+    val seekDurations = mutableListOf<Duration>()
 
+    RandomAccessFile(largeFile.toFile(), "rw").use { rAccFile ->
+        val fileSize = rAccFile.length()
+        val block = ByteArray(BYTES_KB.toInt())
+
+        repeat(trials) {
+            val targetLocation = Random.nextLong(fileSize - block.size)
+            FasterRandom.nextBytes(block)
+            seekDurations += measureTime {
+                rAccFile.seek(targetLocation)
+                rAccFile.write(block)
+            }
+        }
+    }
+
+    Files.delete(largeFile)
+    return seekDurations
+}
+
+@OptIn(ExperimentalTime::class)
+private fun Path.fillWithRandomData(size: Long, writeBlockSize: Long = BYTES_MB): Duration {
+    val fullBlock = ByteArray(writeBlockSize.toInt())
+    var remainingBytes = size
+    var totalDuration: Duration = Duration.ZERO
+
+    while (remainingBytes > 0) {
+        val currentBlock = if (remainingBytes >= writeBlockSize) {
+            fullBlock
+        } else {
+            ByteArray(remainingBytes.toInt())
+        }
+        FasterRandom.nextBytes(currentBlock)
+        totalDuration += measureTime {
+            Files.write(
+                this,
+                currentBlock,
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND
+            )
+        }
+        remainingBytes -= currentBlock.size
+    }
+    return totalDuration
+}
+
+
+@OptIn(ExperimentalTime::class)
+private fun Collection<Duration>.sum() = this.fold(Duration.ZERO, Duration::plus)
 
 
 
