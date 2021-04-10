@@ -15,11 +15,11 @@ import kotlin.time.*
 open class PlotLog(
     parsedLog: Map<InterestingLogLines, String>
 ) {
-    val bufferSize: Int = parsedLog[InterestingLogLines.BUFFER_SIZE]!!.toInt()
-    val tempDir1: String = parsedLog[InterestingLogLines.TEMP_DIR_1]!!
-    val tempDir2: String = parsedLog[InterestingLogLines.TEMP_DIR_2]!!
-    val buckets: Int = parsedLog[InterestingLogLines.BUCKETS]!!.toInt()
-    val threads: Int = parsedLog[InterestingLogLines.THREADS]!!.toInt()
+    open val bufferSize: Int? = parsedLog[InterestingLogLines.BUFFER_SIZE]?.toInt()
+    open val tempDir1: String? = parsedLog[InterestingLogLines.TEMP_DIR_1]
+    open val tempDir2: String? = parsedLog[InterestingLogLines.TEMP_DIR_2]
+    open val buckets: Int? = parsedLog[InterestingLogLines.BUCKETS]?.toInt()
+    open val threads: Int? = parsedLog[InterestingLogLines.THREADS]?.toInt()
     open val p1Duration: Duration? = parsedLog[InterestingLogLines.P1_SECONDS]?.toInt()?.seconds
     open val p2Duration: Duration? = parsedLog[InterestingLogLines.P2_SECONDS]?.toInt()?.seconds
     open val p3Duration: Duration? = parsedLog[InterestingLogLines.P3_SECONDS]?.toInt()?.seconds
@@ -28,11 +28,11 @@ open class PlotLog(
     val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
 
     fun asMap(): SortedMap<String, Any> = sortedMapOf(
-        "tempDir1" to tempDir1,
-        "tempDir2" to tempDir2,
-        "bufferSizeGB" to bufferSize / 1000.0,
-        "buckets" to buckets,
-        "threads" to threads,
+        "tempDir1" to (tempDir1 ?: ""),
+        "tempDir2" to (tempDir2 ?: ""),
+        "bufferSizeGB" to (bufferSize?.let { it / 1000.0} ?: ""),
+        "buckets" to (buckets ?: ""),
+        "threads" to (threads ?: ""),
         "lastModifiedMs" to lastModified,
         "p1H" to (p1Duration?.inHours ?: ""),
         "p2H" to (p2Duration?.inHours ?: ""),
@@ -107,6 +107,14 @@ class CompletedPlotLog(parsedLog: Map<InterestingLogLines, String>) : PlotLog(pa
     override val p3Duration: Duration = super.p3Duration!!
     override val p4Duration: Duration = super.p4Duration!!
     override val totalDuration: Duration = super.totalDuration!!
+
+    override val tempDir1: String = super.tempDir1!!
+    override val tempDir2: String = super.tempDir2!!
+
+    override val buckets: Int = super.buckets!!
+    override val threads: Int = super.threads!!
+    override val bufferSize: Int = super.bufferSize!!
+
 }
 
 
