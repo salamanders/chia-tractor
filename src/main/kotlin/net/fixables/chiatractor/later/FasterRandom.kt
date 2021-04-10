@@ -1,4 +1,4 @@
-package net.fixables.chiatractor
+package net.fixables.chiatractor.later
 
 /**
  * A random number generator based on the simple and fast xor-shift pseudo
@@ -8,12 +8,12 @@ package net.fixables.chiatractor
  * Translated from:
  * http://www.codeproject.com/Articles/9187/A-fast-equivalent-for-System-Random.
  */
-object FasterRandom  {
+object FasterRandom {
     var x: Long = 0
     var y: Long = 0
     var z: Long = 0
     var w: Long = 0
-     fun nextBytes(buffer: ByteArray) {
+    fun nextBytes(buffer: ByteArray) {
         // Fill up the bulk of the buffer in chunks of 4 bytes at a time.
         var x = x
         var y = y
@@ -57,9 +57,9 @@ object FasterRandom  {
                 }
             }
         }
-        this.x = x
-        this.y = y
-        this.z = z
-        this.w = w
+        FasterRandom.x = x
+        FasterRandom.y = y
+        FasterRandom.z = z
+        FasterRandom.w = w
     }
 }

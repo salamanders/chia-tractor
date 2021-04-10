@@ -2,8 +2,6 @@ package net.fixables.chiatractor
 
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.time.ExperimentalTime
 import kotlin.time.days
 
@@ -17,6 +15,7 @@ fun main() {
     parallelRate(completedLogs)
     dumpAllLogs(allPlotLogs)
 
+    println("Not benchmarking.")
     /*
     allPlotLogs
         .map { Path.of(it.tempDir1) }
