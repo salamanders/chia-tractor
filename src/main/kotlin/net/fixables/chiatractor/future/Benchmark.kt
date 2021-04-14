@@ -1,7 +1,11 @@
-package net.fixables.chiatractor
+package net.fixables.chiatractor.future
 
 import kotlinx.coroutines.*
 import kotlinx.coroutines.Dispatchers.IO
+import net.fixables.chiatractor.BYTES_GB
+import net.fixables.chiatractor.BYTES_KB
+import net.fixables.chiatractor.BYTES_MB
+import net.fixables.chiatractor.printtsv
 import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
@@ -12,9 +16,7 @@ import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
-private const val BYTES_KB = 1024L
-private const val BYTES_MB = BYTES_KB * 1024L
-private const val BYTES_GB = BYTES_MB * 1024L
+
 
 fun benchmarkGrid(path: Path) {
     (1..16).shuffled().forEach { sharding ->

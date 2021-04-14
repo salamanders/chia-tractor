@@ -7,6 +7,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.util.*
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.name
 import kotlin.io.path.readLines
 import kotlin.streams.toList
 import kotlin.time.*
@@ -15,6 +16,7 @@ import kotlin.time.*
 open class PlotLog(
     parsedLog: Map<InterestingLogLines, String>
 ) {
+    val id:String = parsedLog[InterestingLogLines.PLOT_ID]!!
     val bufferSize: Int = parsedLog[InterestingLogLines.BUFFER_SIZE]!!.toInt()
     val tempDir1: String = parsedLog[InterestingLogLines.TEMP_DIR_1]!!
     val tempDir2: String = parsedLog[InterestingLogLines.TEMP_DIR_2]!!
@@ -28,6 +30,7 @@ open class PlotLog(
     val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
 
     fun asMap(): SortedMap<String, Any> = sortedMapOf(
+        "id" to id,
         "tempDir1" to tempDir1,
         "tempDir2" to tempDir2,
         "bufferSizeGB" to bufferSize / 1000.0,
@@ -56,7 +59,7 @@ open class PlotLog(
                 .map(PlotLog::pathToPlotLog)
                 .filter {
                     // Either it completed, or it is recent.  (discard abandoned plotting)
-                    it is CompletedPlotLog || (System.currentTimeMillis() - it.lastModified).milliseconds < 2.days
+                    it is CompletedPlotLog || (System.currentTimeMillis() - it.lastModified).milliseconds < 1.days
                 }
                 .toList()
         }
@@ -69,7 +72,8 @@ open class PlotLog(
                 .fold(
                     mutableMapOf(
                         InterestingLogLines.LAST_MODIFIED to Files.getLastModifiedTime(logFilePath).toMillis()
-                            .toString()
+                            .toString(),
+                        InterestingLogLines.PLOT_ID to logFilePath.name.removePrefix("plotter_log_").removeSuffix(".txt")
                     )
                 ) { agg, line ->
                     InterestingLogLines.values().forEach { ill ->
@@ -98,6 +102,7 @@ enum class InterestingLogLines(val pattern: Regex? = null) {
     P4_SECONDS("^Time for phase 4 = (\\d+)".toRegex()),
     TOTAL_SECONDS("Total time = (\\d+)".toRegex()),
     LAST_MODIFIED,
+    PLOT_ID,
 }
 
 @OptIn(ExperimentalTime::class)

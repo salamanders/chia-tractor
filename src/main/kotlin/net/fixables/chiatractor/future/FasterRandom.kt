@@ -1,4 +1,4 @@
-package net.fixables.chiatractor
+package net.fixables.chiatractor.future
 
 /**
  * A random number generator based on the simple and fast xor-shift pseudo
@@ -57,9 +57,9 @@ object FasterRandom  {
                 }
             }
         }
-        this.x = x
-        this.y = y
-        this.z = z
-        this.w = w
+        FasterRandom.x = x
+        FasterRandom.y = y
+        FasterRandom.z = z
+        FasterRandom.w = w
     }
 }

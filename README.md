@@ -26,14 +26,13 @@ Pull requests welcome!  I don't subdivide by plotting stages, but should.
     * Windows: Easier to go with IntelliJ
 2. Weld together the Tractor from a bucket of bolts
 ```
-git clone https://github.com/salamanders/chia-tractor/
+git clone https://github.com/salamanders/chia-tractor/ # git pull --no-rebase
 cd chia-tractor
 mvn package
 ```
 
 3. Drive around in your Tractor as often as you like!
 ```
-export JAVA_OPTS="-Xmx8g"
 kotlin -classpath ./target/consoleApp-1.0-SNAPSHOT-jar-with-dependencies.jar net.fixables.chiatractor.TractorKt
 ```
 

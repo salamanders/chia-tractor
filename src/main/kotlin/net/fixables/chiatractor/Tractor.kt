@@ -1,11 +1,14 @@
 package net.fixables.chiatractor
 
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import java.math.BigDecimal
 import java.math.RoundingMode
-import java.nio.file.Files
-import java.nio.file.Path
+import java.nio.file.FileSystems
+import java.util.concurrent.ConcurrentSkipListSet
 import kotlin.time.ExperimentalTime
 import kotlin.time.days
+import kotlin.time.minutes
 
 fun main() {
     println("Starting up the Chia Tractor")
@@ -15,7 +18,37 @@ fun main() {
     println("Found ${allPlotLogs.size} total logs, ${completedLogs.size} completed logs.")
     completionTimes(completedLogs)
     parallelRate(completedLogs)
-    dumpAllLogs(allPlotLogs)
+    // dumpAllLogs(allPlotLogs)
+
+    printtsv("TimeMS", "Store", "type", "total", "used", "avail")
+
+    runBlocking {
+        while (true) {
+            val now = System.currentTimeMillis()
+
+            PlotLog.loadLogs()
+                .filterNot { it is CompletedPlotLog }
+                .forEach { activePlot ->
+                    when {
+                        activePlot.p4Duration != null -> printtsvOnce(now, activePlot.id, activePlot.tempDir2, "p4done")
+                        activePlot.p3Duration != null -> printtsvOnce(now, activePlot.id, activePlot.tempDir2, "p3done")
+                        activePlot.p2Duration != null -> printtsvOnce(now, activePlot.id, activePlot.tempDir1, "p2done")
+                        activePlot.p1Duration != null -> printtsvOnce(now, activePlot.id, activePlot.tempDir1, "p1done")
+                    }
+                }
+
+            FileSystems.getDefault().fileStores.forEach { store ->
+                val total = store.totalSpace / BYTES_GB
+                if (total > 0) {
+                    val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
+                    val avail = store.usableSpace / BYTES_GB
+                    printtsv(now, store, store.type(), total, used, avail)
+                }
+            }
+            delay(5.minutes)
+        }
+    }
+
 
     /*
     allPlotLogs
@@ -73,6 +106,22 @@ private fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
         }
 }
 
+internal val printOnces: MutableSet<String> = ConcurrentSkipListSet()
+
+/** Ignoring doubles, print each line at most once */
+internal fun printtsvOnce(vararg elts: Any?) {
+    if (elts.size == 1 && elts[0] is Collection<Any?>) {
+        return printtsvOnce(*(elts[0] as Collection<Any?>).toTypedArray())
+    }
+    val key = elts.filter { it !is Double }.joinToString(",")
+    check(key.isNotBlank()) { "Bad key for printtsvOnce" }
+    if (!printOnces.contains(key)) {
+        printOnces.add(key)
+        printtsv(elts)
+    }
+}
+
+/** For pasting into spreadsheets */
 internal fun printtsv(vararg elts: Any?) {
     if (elts.size == 1 && elts[0] is Collection<Any?>) {
         return printtsv(*(elts[0] as Collection<Any?>).toTypedArray())
@@ -88,3 +137,7 @@ internal fun printtsv(vararg elts: Any?) {
 }
 
 internal fun Double.round(scale: Int = 1) = BigDecimal(this).setScale(scale, RoundingMode.HALF_UP).toDouble()
+
+internal const val BYTES_KB = 1024L
+internal const val BYTES_MB = BYTES_KB * 1024L
+internal const val BYTES_GB = BYTES_MB * 1024L
