@@ -8,12 +8,12 @@ package net.fixables.chiatractor.future
  * Translated from:
  * http://www.codeproject.com/Articles/9187/A-fast-equivalent-for-System-Random.
  */
-object FasterRandom  {
+object FasterRandom {
     var x: Long = 0
     var y: Long = 0
     var z: Long = 0
     var w: Long = 0
-     fun nextBytes(buffer: ByteArray) {
+    fun nextBytes(buffer: ByteArray) {
         // Fill up the bulk of the buffer in chunks of 4 bytes at a time.
         var x = x
         var y = y

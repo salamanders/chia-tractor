@@ -16,27 +16,29 @@ import kotlin.time.*
 open class PlotLog(
     parsedLog: Map<InterestingLogLines, String>
 ) {
-    val id:String = parsedLog[InterestingLogLines.PLOT_ID]!!
-    val bufferSize: Int = parsedLog[InterestingLogLines.BUFFER_SIZE]!!.toInt()
-    val tempDir1: String = parsedLog[InterestingLogLines.TEMP_DIR_1]!!
-    val tempDir2: String = parsedLog[InterestingLogLines.TEMP_DIR_2]!!
-    val buckets: Int = parsedLog[InterestingLogLines.BUCKETS]!!.toInt()
-    val threads: Int = parsedLog[InterestingLogLines.THREADS]!!.toInt()
+    val id: String = parsedLog[InterestingLogLines.PLOT_ID]!!
+    val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
+
+    open val bufferSize: Int? = parsedLog[InterestingLogLines.BUFFER_SIZE]?.toInt()
+    open val tempDir1: String? = parsedLog[InterestingLogLines.TEMP_DIR_1]
+    open val tempDir2: String? = parsedLog[InterestingLogLines.TEMP_DIR_2]
+    open val buckets: Int? = parsedLog[InterestingLogLines.BUCKETS]?.toInt()
+    open val threads: Int? = parsedLog[InterestingLogLines.THREADS]?.toInt()
     open val p1Duration: Duration? = parsedLog[InterestingLogLines.P1_SECONDS]?.toInt()?.seconds
     open val p2Duration: Duration? = parsedLog[InterestingLogLines.P2_SECONDS]?.toInt()?.seconds
     open val p3Duration: Duration? = parsedLog[InterestingLogLines.P3_SECONDS]?.toInt()?.seconds
     open val p4Duration: Duration? = parsedLog[InterestingLogLines.P4_SECONDS]?.toInt()?.seconds
     open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()?.seconds
-    val lastModified: Long = parsedLog[InterestingLogLines.LAST_MODIFIED]!!.toLong()
 
     fun asMap(): SortedMap<String, Any> = sortedMapOf(
         "id" to id,
-        "tempDir1" to tempDir1,
-        "tempDir2" to tempDir2,
-        "bufferSizeGB" to bufferSize / 1000.0,
-        "buckets" to buckets,
-        "threads" to threads,
         "lastModifiedMs" to lastModified,
+
+        "tempDir1" to (tempDir1 ?: ""),
+        "tempDir2" to (tempDir2 ?: ""),
+        "bufferSizeGB" to (bufferSize?.let { it / 1024.0 } ?: ""),
+        "buckets" to (buckets ?: ""),
+        "threads" to (threads ?: ""),
         "p1H" to (p1Duration?.inHours ?: ""),
         "p2H" to (p2Duration?.inHours ?: ""),
         "p3H" to (p3Duration?.inHours ?: ""),
@@ -73,7 +75,8 @@ open class PlotLog(
                     mutableMapOf(
                         InterestingLogLines.LAST_MODIFIED to Files.getLastModifiedTime(logFilePath).toMillis()
                             .toString(),
-                        InterestingLogLines.PLOT_ID to logFilePath.name.removePrefix("plotter_log_").removeSuffix(".txt")
+                        InterestingLogLines.PLOT_ID to logFilePath.name.removePrefix("plotter_log_")
+                            .removeSuffix(".txt")
                     )
                 ) { agg, line ->
                     InterestingLogLines.values().forEach { ill ->
@@ -91,6 +94,8 @@ open class PlotLog(
 }
 
 enum class InterestingLogLines(val pattern: Regex? = null) {
+    LAST_MODIFIED,
+    PLOT_ID,
     BUFFER_SIZE("^Buffer size is: (\\d+)MiB$".toRegex()),
     TEMP_DIR_1("^Starting plotting progress into temporary dirs: (.+) and .+$".toRegex()),
     TEMP_DIR_2("^Starting plotting progress into temporary dirs: .+ and (.+)$".toRegex()),
@@ -101,12 +106,15 @@ enum class InterestingLogLines(val pattern: Regex? = null) {
     P3_SECONDS("^Time for phase 3 = (\\d+)".toRegex()),
     P4_SECONDS("^Time for phase 4 = (\\d+)".toRegex()),
     TOTAL_SECONDS("Total time = (\\d+)".toRegex()),
-    LAST_MODIFIED,
-    PLOT_ID,
 }
 
 @OptIn(ExperimentalTime::class)
 class CompletedPlotLog(parsedLog: Map<InterestingLogLines, String>) : PlotLog(parsedLog) {
+    override val bufferSize: Int = super.bufferSize!!
+    override val tempDir1: String = super.tempDir1!!
+    override val tempDir2: String = super.tempDir2!!
+    override val buckets: Int = super.buckets!!
+    override val threads: Int = super.threads!!
     override val p1Duration: Duration = super.p1Duration!!
     override val p2Duration: Duration = super.p2Duration!!
     override val p3Duration: Duration = super.p3Duration!!

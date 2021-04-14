@@ -17,7 +17,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.measureTime
 
 
-
 fun benchmarkGrid(path: Path) {
     (1..16).shuffled().forEach { sharding ->
         benchmark(
