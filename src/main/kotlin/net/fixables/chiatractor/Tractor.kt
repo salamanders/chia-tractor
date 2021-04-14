@@ -2,6 +2,7 @@ package net.fixables.chiatractor
 
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import java.io.IOException
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.nio.file.FileSystems
@@ -38,11 +39,15 @@ fun main() {
                 }
 
             FileSystems.getDefault().fileStores.forEach { store ->
-                val total = store.totalSpace / BYTES_GB
-                if (total > 0) {
-                    val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
-                    val avail = store.usableSpace / BYTES_GB
-                    printtsv(now, store, store.type(), total, used, avail)
+                try {
+                    val total = store.totalSpace / BYTES_GB
+                    if (total > 0) {
+                        val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
+                        val avail = store.usableSpace / BYTES_GB
+                        printtsv(now, store, store.type(), total, used, avail)
+                    }
+                } catch (e: IOException) {
+                    // skipping
                 }
             }
             delay(5.minutes)
