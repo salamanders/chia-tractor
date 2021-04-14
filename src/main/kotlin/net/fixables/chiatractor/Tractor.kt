@@ -122,7 +122,7 @@ internal fun printtsvOnce(vararg elts: Any?) {
     check(key.isNotBlank()) { "Bad key for printtsvOnce" }
     if (!printOnces.contains(key)) {
         printOnces.add(key)
-        printtsv(elts)
+        printtsv(*elts)
     }
 }
 
