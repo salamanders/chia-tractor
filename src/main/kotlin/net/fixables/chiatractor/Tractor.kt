@@ -11,7 +11,7 @@ import kotlin.time.days
 import kotlin.time.minutes
 
 fun main() {
-    println("Starting up the Chia Tractor")
+    println("Starting up the Chia Tractor. Reading plots, then monitoring.")
 
     val allPlotLogs = PlotLog.loadLogs()
     val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
