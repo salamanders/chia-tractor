@@ -19,7 +19,7 @@ fun main() {
     parallelRate(completedLogs)
     // dumpAllLogs(allPlotLogs)
 
-    TSV.println("TimeMS", "Store", "type", "total", "used", "avail")
+    printlnt("TimeMS", "Store", "type", "total", "used", "avail")
 
     runBlocking {
         while (true) {
@@ -36,10 +36,10 @@ private fun logFileStoreSpace() {
         .filterNot { it is CompletedPlotLog }
         .forEach { activePlot ->
             when {
-                activePlot.p4Duration != null -> TSV.once(now, activePlot.id, activePlot.tempDir2, "p4done")
-                activePlot.p3Duration != null -> TSV.once(now, activePlot.id, activePlot.tempDir2, "p3done")
-                activePlot.p2Duration != null -> TSV.once(now, activePlot.id, activePlot.tempDir1, "p2done")
-                activePlot.p1Duration != null -> TSV.once(now, activePlot.id, activePlot.tempDir1, "p1done")
+                activePlot.p4Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir2, "p4done")
+                activePlot.p3Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir2, "p3done")
+                activePlot.p2Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir1, "p2done")
+                activePlot.p1Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir1, "p1done")
             }
         }
 
@@ -49,7 +49,7 @@ private fun logFileStoreSpace() {
             if (totalGB > 50) {
                 val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
                 val avail = store.usableSpace / BYTES_GB
-                TSV.println(now, store, store.type(), totalGB, used, avail)
+                printlnt(now, store, store.type(), totalGB, used, avail)
             }
         } catch (e: IOException) {
             // skipping
@@ -64,13 +64,13 @@ private fun logFileStoreSpace() {
 @OptIn(ExperimentalTime::class)
 private fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
     println()
-    TSV.println("Temp Dir", "plots/day over last $numberOfDays days")
+    printlnt("Temp Dir", "plots/day over last $numberOfDays days")
     val fewDaysAgoMs = System.currentTimeMillis() - numberOfDays.days.inMilliseconds
     plotLogs.filter { it.lastModified > fewDaysAgoMs }
         .groupBy { it.tempDir1 }
         .toSortedMap()
         .forEach { (tmpDir1, plots) ->
-            TSV.println(tmpDir1, plots.size / numberOfDays.toDouble())
+            printlnt(tmpDir1, plots.size / numberOfDays.toDouble())
         }
 }
 
@@ -80,14 +80,14 @@ private fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: I
 @OptIn(ExperimentalTime::class)
 private fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
     println()
-    TSV.println("Temp Dir", "Total Completed", "Average (h)", "Most Recent (h)")
+    printlnt("Temp Dir", "Total Completed", "Average (h)", "Most Recent (h)")
     plotLogs
         .groupBy { it.tempDir1 }
         .toSortedMap()
         .forEach { (tmpDir1, plots) ->
             val avg = plots.map { it.totalDuration.inHours }.average()
             val mostRecent = plots.maxByOrNull { it.lastModified }!!.totalDuration.inHours
-            TSV.println(tmpDir1, plots.size, avg, mostRecent)
+            printlnt(tmpDir1, plots.size, avg, mostRecent)
         }
 }
 
