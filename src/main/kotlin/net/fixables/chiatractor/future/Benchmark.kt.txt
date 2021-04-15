@@ -5,7 +5,7 @@ import kotlinx.coroutines.Dispatchers.IO
 import net.fixables.chiatractor.BYTES_GB
 import net.fixables.chiatractor.BYTES_KB
 import net.fixables.chiatractor.BYTES_MB
-import net.fixables.chiatractor.printtsv
+import net.fixables.chiatractor.TSV
 import java.io.RandomAccessFile
 import java.nio.file.Files
 import java.nio.file.Path
@@ -71,10 +71,10 @@ private fun benchmarkWrite(
 
 
     if (!headerWritePrinted.get()) {
-        printtsv("path", "sharding", "Write CPU Time (s)", "Write Wall Time (s)")
+        TSV.println("path", "sharding", "Write CPU Time (s)", "Write Wall Time (s)")
         headerWritePrinted.set(true)
     }
-    printtsv(
+    TSV.println(
         path,
         sharding,
         totalWriteTimeCPU.inSeconds,

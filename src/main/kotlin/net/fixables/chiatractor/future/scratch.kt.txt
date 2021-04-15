@@ -1,0 +1,21 @@
+private fun dumpAllLogs(allPlotLogs: List<PlotLog>) {
+    require(allPlotLogs.isNotEmpty()) { "No plot logs found." }
+    println()
+    TSV.println(allPlotLogs.first().asMap().keys)
+    allPlotLogs.forEach {
+        TSV.println(it.asMap().values)
+    }
+}
+
+    /*
+    allPlotLogs
+        .map { Path.of(it.tempDir1) }
+        .distinctBy { Files.getFileStore(it.toRealPath()).name() }
+        .filter { Files.exists(it) && Files.isDirectory(it) && Files.isWritable(it) }
+        .let { tempDirs ->
+            println("Benchmarking ${tempDirs.size} file stores: ${tempDirs.joinToString(", ")}")
+            tempDirs.forEach {
+                benchmarkGrid(path = it)
+            }
+        }
+     */
