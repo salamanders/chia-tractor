@@ -15,8 +15,9 @@ fun printlntOnce(vararg elements: Any?) {
     if (elements.size == 1 && elements[0] is Collection<Any?>) {
         return printlntOnce(*(elements[0] as Collection<Any?>).toTypedArray())
     }
-    val key = elements.filter { it !is Double }.joinToString(",")
-    check(key.isNotBlank()) { "Bad key for printtsvOnce, need at least 1 not-Double" }
+    val key = elements.filterIsInstance<String>().joinToString(",")
+
+    check(key.isNotBlank()) { "Bad key for printtsvOnce, need at least 1 String" }
     if (!alreadySeen.contains(key)) {
         alreadySeen.add(key)
         printlnt(*elements)
