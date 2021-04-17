@@ -21,7 +21,7 @@ Pull requests welcome!  I don't subdivide by plotting stages, but should.
 
 0. Easiest: Install IntelliJ Community Edition. If you want to go lightweight or command-line...
 1. Install your tractor making tools (JRE and Kotlin)
-    * Ubuntu: `sudo snap install openjdk & sudo snap install kotlin --classic & sudo apt install maven`
+    * Ubuntu: `sudo snap install openjdk && sudo snap install kotlin --classic && sudo apt install maven`
     * Mac: `brew install kotlin`
     * Windows: Easier to go with IntelliJ
 2. Weld together the Tractor from a bucket of bolts
