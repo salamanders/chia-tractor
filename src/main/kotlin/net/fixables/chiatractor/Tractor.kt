@@ -5,28 +5,44 @@ import info.benjaminhill.utils.printlntOnce
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
+import java.nio.file.FileStore
 import java.nio.file.FileSystems
+import java.nio.file.Paths
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 
 
+private val activeFileStores: MutableSet<FileStore> = mutableSetOf()
+
 fun main() {
-    println("Starting up the Chia Tractor. Reading plots, then monitoring.")
+    println("Starting up the Chia Tractor. Reading plots, then monitoring.  Ok to >> this to a tsv file.")
 
     val allPlotLogs = PlotLog.loadLogs()
     val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
     println("Found ${allPlotLogs.size} total logs, ${completedLogs.size} completed logs.")
     completionTimes(completedLogs)
     parallelRate(completedLogs)
-    // dumpAllLogs(allPlotLogs)
 
-    printlnt("TimeMS", "Store", "type", "total", "used", "avail")
+    allPlotLogs.forEach { plotLog ->
+        try {
+            plotLog.tempDir1?.let {
+                activeFileStores.addAll(Paths.get(it).fileSystem.fileStores)
+            }
+            plotLog.tempDir2?.let {
+                activeFileStores.addAll(Paths.get(it).fileSystem.fileStores)
+            }
+        } catch (e: IOException) {
+            // ignore
+        }
+    }
+    println("Found ${activeFileStores.size} file stores to watch: ${activeFileStores.joinToString()}")
 
+    printlnt("time_ms", "event_type", "Store", "used", "avail")
     runBlocking {
         while (true) {
             logFileStoreSpace()
-            delay(Duration.minutes(5))
+            delay(Duration.minutes(1))
         }
     }
 }
@@ -35,28 +51,22 @@ private fun logFileStoreSpace() {
     val now = System.currentTimeMillis()
 
     PlotLog.loadLogs()
-        .filterNot { it is CompletedPlotLog }
-        .forEach { activePlot ->
+        .forEach { plot ->
             when {
-                activePlot.p4Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir2, "p4done")
-                activePlot.p3Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir2, "p3done")
-                activePlot.p2Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir1, "p2done")
-                activePlot.p1Duration != null -> printlntOnce(now, activePlot.id, activePlot.tempDir1, "p1done")
+                plot.p4Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir2, "p4done")
+                plot.p3Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir2, "p3done")
+                plot.p2Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir1, "p2done")
+                plot.p1Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir1, "p1done")
             }
         }
 
-    FileSystems.getDefault().fileStores.forEach { store ->
-        try {
-            val totalGB = store.totalSpace / BYTES_GB
-            if (totalGB > 50) {
-                val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
-                val avail = store.usableSpace / BYTES_GB
-                printlnt(now, store, store.type(), totalGB, used, avail)
-            }
-        } catch (e: IOException) {
-            // skipping
+    FileSystems.getDefault().fileStores
+        .filter { activeFileStores.contains(it) }
+        .forEach { store ->
+            val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
+            val avail = store.usableSpace / BYTES_GB
+            printlnt(now, "space", store, used, avail)
         }
-    }
 }
 
 
