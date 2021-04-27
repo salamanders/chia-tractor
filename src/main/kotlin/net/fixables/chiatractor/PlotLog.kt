@@ -24,27 +24,12 @@ open class PlotLog(
     open val tempDir2: String? = parsedLog[InterestingLogLines.TEMP_DIR_2]
     open val buckets: Int? = parsedLog[InterestingLogLines.BUCKETS]?.toInt()
     open val threads: Int? = parsedLog[InterestingLogLines.THREADS]?.toInt()
-    open val p1Duration: Duration? = parsedLog[InterestingLogLines.P1_SECONDS]?.toInt()?.seconds
-    open val p2Duration: Duration? = parsedLog[InterestingLogLines.P2_SECONDS]?.toInt()?.seconds
-    open val p3Duration: Duration? = parsedLog[InterestingLogLines.P3_SECONDS]?.toInt()?.seconds
-    open val p4Duration: Duration? = parsedLog[InterestingLogLines.P4_SECONDS]?.toInt()?.seconds
-    open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()?.seconds
-
-    fun asMap(): SortedMap<String, Any> = sortedMapOf(
-        "id" to id,
-        "lastModifiedMs" to lastModified,
-
-        "tempDir1" to (tempDir1 ?: ""),
-        "tempDir2" to (tempDir2 ?: ""),
-        "bufferSizeGB" to (bufferSize?.let { it / 1024.0 } ?: ""),
-        "buckets" to (buckets ?: ""),
-        "threads" to (threads ?: ""),
-        "p1H" to (p1Duration?.inHours ?: ""),
-        "p2H" to (p2Duration?.inHours ?: ""),
-        "p3H" to (p3Duration?.inHours ?: ""),
-        "p4H" to (p4Duration?.inHours ?: ""),
-        "totalH" to (totalDuration?.inHours ?: ""),
-    )
+    open val p1Duration: Duration? = parsedLog[InterestingLogLines.P1_SECONDS]?.toInt()?.let { Duration.seconds(it) }
+    open val p2Duration: Duration? = parsedLog[InterestingLogLines.P2_SECONDS]?.toInt()?.let { Duration.seconds(it) }
+    open val p3Duration: Duration? = parsedLog[InterestingLogLines.P3_SECONDS]?.toInt()?.let { Duration.seconds(it) }
+    open val p4Duration: Duration? = parsedLog[InterestingLogLines.P4_SECONDS]?.toInt()?.let { Duration.seconds(it) }
+    open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()
+        ?.let { Duration.seconds(it) }
 
     companion object {
         fun loadLogs(
@@ -61,7 +46,9 @@ open class PlotLog(
                 .map(PlotLog::pathToPlotLog)
                 .filter {
                     // Either it completed, or it is recent.  (discard abandoned plotting)
-                    it is CompletedPlotLog || (System.currentTimeMillis() - it.lastModified).milliseconds < 1.days
+                    it is CompletedPlotLog || Duration.milliseconds((System.currentTimeMillis() - it.lastModified)) < Duration.days(
+                        1
+                    )
                 }
                 .toList()
         }

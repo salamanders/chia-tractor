@@ -1,13 +1,14 @@
 package net.fixables.chiatractor
 
+import info.benjaminhill.utils.printlnt
+import info.benjaminhill.utils.printlntOnce
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
 import java.nio.file.FileSystems
-import kotlin.system.exitProcess
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
-import kotlin.time.days
-import kotlin.time.minutes
 
 
 fun main() {
@@ -25,7 +26,7 @@ fun main() {
     runBlocking {
         while (true) {
             logFileStoreSpace()
-            delay(5.minutes)
+            delay(Duration.minutes(5))
         }
     }
 }
@@ -66,7 +67,7 @@ private fun logFileStoreSpace() {
 private fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
     println()
     printlnt("Temp Dir", "plots/day over last $numberOfDays days")
-    val fewDaysAgoMs = System.currentTimeMillis() - numberOfDays.days.inMilliseconds
+    val fewDaysAgoMs = System.currentTimeMillis() - Duration.days(numberOfDays).toDouble(DurationUnit.MILLISECONDS)
     plotLogs.filter { it.lastModified > fewDaysAgoMs }
         .groupBy { it.tempDir1 }
         .toSortedMap()
@@ -86,8 +87,8 @@ private fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
         .groupBy { it.tempDir1 }
         .toSortedMap()
         .forEach { (tmpDir1, plots) ->
-            val avg = plots.map { it.totalDuration.inHours }.average()
-            val mostRecent = plots.maxByOrNull { it.lastModified }!!.totalDuration.inHours
+            val avg = plots.map { it.totalDuration.toDouble(DurationUnit.HOURS) }.average()
+            val mostRecent = plots.maxByOrNull { it.lastModified }!!.totalDuration.toDouble(DurationUnit.HOURS)
             printlnt(tmpDir1, plots.size, avg, mostRecent)
         }
 }
