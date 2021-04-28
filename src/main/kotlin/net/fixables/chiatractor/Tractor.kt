@@ -7,12 +7,18 @@ import kotlinx.coroutines.runBlocking
 import java.io.IOException
 import java.nio.file.FileStore
 import java.nio.file.FileSystems
+import java.nio.file.Files
 import java.nio.file.Paths
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 
+// Big enough for a temp file or a k32
+private val bigFileStores: Set<FileStore> = FileSystems.getDefault().fileStores.filter {
+    it.totalSpace / BYTES_GB > 100
+}.toSet()
 
+// Recently used big locations
 private val activeFileStores: MutableSet<FileStore> = mutableSetOf()
 
 fun main() {
@@ -26,12 +32,11 @@ fun main() {
 
     allPlotLogs.forEach { plotLog ->
         try {
-            plotLog.tempDir1?.let {
-                activeFileStores.addAll(Paths.get(it).fileSystem.fileStores)
-            }
-            plotLog.tempDir2?.let {
-                activeFileStores.addAll(Paths.get(it).fileSystem.fileStores)
-            }
+            activeFileStores.addAll(
+                listOfNotNull(plotLog.tempDir1, plotLog.tempDir2)
+                    .map { Files.getFileStore(Paths.get(it)) }
+                    .filter { bigFileStores.contains(it) }
+            )
         } catch (e: IOException) {
             // ignore
         }
