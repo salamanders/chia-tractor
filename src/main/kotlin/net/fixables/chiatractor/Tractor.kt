@@ -13,10 +13,7 @@ import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 
-// Big enough for a temp file or a k32
-private val bigFileStores: Set<FileStore> = FileSystems.getDefault().fileStores.filter {
-    it.totalSpace / BYTES_GB > 100
-}.toSet()
+
 
 // Recently used big locations
 private val activeFileStores: MutableSet<FileStore> = mutableSetOf()
@@ -30,6 +27,15 @@ fun main() {
     completionTimes(completedLogs)
     parallelRate(completedLogs)
 
+    // Big enough for a temp file or a k32
+    val bigFileStores: Set<FileStore> = FileSystems.getDefault().fileStores.filter {
+        try {
+            it.totalSpace / BYTES_GB > 100
+        } catch (e:Exception) {
+            false
+        }
+    }.toSet()
+
     allPlotLogs.forEach { plotLog ->
         try {
             activeFileStores.addAll(
@@ -41,8 +47,10 @@ fun main() {
             // ignore
         }
     }
-    println("Found ${activeFileStores.size} file stores to watch: ${activeFileStores.joinToString()}")
+    println("Found ${bigFileStores.size} big stores, of which ${activeFileStores.size} are active: ${activeFileStores.joinToString()}")
+    check(activeFileStores.isNotEmpty()) { "Must have at least one active file store to watch." }
 
+    println()
     printlnt("time_ms", "event_type", "Store", "used", "avail")
     runBlocking {
         while (true) {
