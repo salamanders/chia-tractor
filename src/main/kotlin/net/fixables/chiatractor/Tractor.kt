@@ -2,6 +2,7 @@ package net.fixables.chiatractor
 
 import info.benjaminhill.utils.printlnt
 import info.benjaminhill.utils.printlntOnce
+import info.benjaminhill.utils.printlntOnceSkip
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.IOException
@@ -9,15 +10,15 @@ import java.nio.file.FileStore
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
 import kotlin.time.ExperimentalTime
 
 
-
 // Recently used big locations
 private val activeFileStores: MutableSet<FileStore> = mutableSetOf()
-
+private val firstRun = AtomicBoolean(true)
 fun main() {
     println("Starting up the Chia Tractor. Reading plots, then monitoring.  Ok to >> this to a tsv file.")
 
@@ -31,7 +32,7 @@ fun main() {
     val bigFileStores: Set<FileStore> = FileSystems.getDefault().fileStores.filter {
         try {
             it.totalSpace / BYTES_GB > 100
-        } catch (e:Exception) {
+        } catch (e: Exception) {
             false
         }
     }.toSet()
@@ -52,6 +53,7 @@ fun main() {
 
     println()
     printlnt("time_ms", "event_type", "Store", "used", "avail")
+    logFileStoreSpace() // hide the past events
     runBlocking {
         while (true) {
             logFileStoreSpace()
@@ -62,16 +64,16 @@ fun main() {
 
 private fun logFileStoreSpace() {
     val now = System.currentTimeMillis()
-
     PlotLog.loadLogs()
         .forEach { plot ->
-            when {
-                plot.p4Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir2, "p4done")
-                plot.p3Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir2, "p3done")
-                plot.p2Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir1, "p2done")
-                plot.p1Duration != null -> printlntOnce(now, "phase", plot.id, plot.tempDir1, "p1done")
+            val logLine = listOf(now, "phase", plot.id, plot.latestFolder(), plot.latestPhase()).toTypedArray()
+            if (firstRun.get()) {
+                printlntOnceSkip(*logLine)
+            } else {
+                printlntOnce(*logLine)
             }
         }
+    firstRun.set(false)
 
     FileSystems.getDefault().fileStores
         .filter { activeFileStores.contains(it) }

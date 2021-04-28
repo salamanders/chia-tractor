@@ -5,12 +5,12 @@ package net.fixables.chiatractor
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.*
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.name
 import kotlin.io.path.readLines
 import kotlin.streams.toList
-import kotlin.time.*
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
 @OptIn(ExperimentalTime::class, ExperimentalPathApi::class)
 open class PlotLog(
@@ -30,6 +30,20 @@ open class PlotLog(
     open val p4Duration: Duration? = parsedLog[InterestingLogLines.P4_SECONDS]?.toInt()?.let { Duration.seconds(it) }
     open val totalDuration: Duration? = parsedLog[InterestingLogLines.TOTAL_SECONDS]?.toInt()
         ?.let { Duration.seconds(it) }
+
+    fun latestPhase() = when {
+        p4Duration != null -> "p4done"
+        p3Duration != null -> "p3done"
+        p2Duration != null -> "p2done"
+        p1Duration != null -> "p1done"
+        else -> "p1start"
+    }
+
+    fun latestFolder() = when (latestPhase()) {
+        "p4done", "p3done" -> tempDir2!!
+        "p2done", "p1done" -> tempDir1!!
+        else -> tempDir1
+    }
 
     companion object {
         fun loadLogs(
