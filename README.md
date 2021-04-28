@@ -27,15 +27,14 @@ Pull requests welcome!  I don't subdivide by plotting stages, but should.
 2. Weld together the Tractor from a bucket of bolts
 
 ```
-git clone https://github.com/salamanders/chia-tractor/ # git pull --no-rebase
-cd chia-tractor
-mvn package
+git clone https://github.com/salamanders/chia-tractor/ && cd chia-tractor
+git pull --no-rebase && mvn package
 ```
 
 3. Drive around in your Tractor as often as you like!
 
 ```
-kotlin -classpath ./target/consoleApp-1.0-SNAPSHOT-jar-with-dependencies.jar net.fixables.chiatractor.TractorKt
+kotlin -classpath ./target/chiatractor-1.0-SNAPSHOT-jar-with-dependencies.jar net.fixables.chiatractor.TractorKt 
 ```
 
 Example output:

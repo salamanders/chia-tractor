@@ -55,7 +55,7 @@ fun main() {
     runBlocking {
         while (true) {
             logFileStoreSpace()
-            delay(Duration.minutes(1))
+            delay(Duration.minutes(1).toLong(DurationUnit.MILLISECONDS))
         }
     }
 }
