@@ -1,122 +1,76 @@
 package net.fixables.chiatractor
 
-import info.benjaminhill.utils.printlnt
-import info.benjaminhill.utils.printlntOnce
-import info.benjaminhill.utils.printlntOnceSkip
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import java.io.IOException
+import java.io.File
 import java.nio.file.FileStore
 import java.nio.file.FileSystems
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.DurationUnit
-import kotlin.time.ExperimentalTime
 
 
-// Recently used big locations
-private val activeFileStores: MutableSet<FileStore> = mutableSetOf()
-private val firstRun = AtomicBoolean(true)
-fun main() {
-    println("Starting up the Chia Tractor. Reading plots, then monitoring.  Ok to >> this to a tsv file.")
+fun main(vararg args: String) {
+    when {
+        args.contains("-l") -> {
+            println("Calculating layouts.")
+            // TODO: get this from a log
+            val timeToSpace: IntArray =
+                loadSamples(File("single_plot_gb.tsv")).also { println("Read ${it.size} time samples.") }
+            println("Samples: ${timeToSpace.size}")
+            val delayMinutes = packThemIn(
+                timeToSpaceSamples = timeToSpace,
+                availableSpaceGb = 780, // TODO: get this from the system
+            )
+            println("Try plotting with a delay of $delayMinutes minutes.")
+        }
+        args.contains("-m") -> {
+            logFileStoreSpace() // hide the past events
+            runBlocking {
+                while (true) {
+                    logFileStoreSpace()
+                    delay(Duration.minutes(0.9).toLong(DurationUnit.MILLISECONDS))
+                }
+            }
+        }
+        args.contains("-r") -> {
+            completionTimes(completedLogs)
+            parallelRate(completedLogs)
+        }
+        else -> {
+            println("All output TSV-friendly. \nOptions:\n -l=calculate layouts\n -m=monitor free GB\n -r=read all plot logs")
+        }
+    }
+}
 
-    val allPlotLogs = PlotLog.loadLogs()
-    val completedLogs = allPlotLogs.filterIsInstance<CompletedPlotLog>()
-    println("Found ${allPlotLogs.size} total logs, ${completedLogs.size} completed logs.")
-    completionTimes(completedLogs)
-    parallelRate(completedLogs)
-
-    // Big enough for a temp file or a k32
-    val bigFileStores: Set<FileStore> = FileSystems.getDefault().fileStores.filter {
+// Big enough for a temp file or a k32
+private val bigFileStores: Set<FileStore> by lazy {
+    println("Loading all file stores that could be used.")
+    FileSystems.getDefault().fileStores.filter {
         try {
             it.totalSpace / BYTES_GB > 100
         } catch (e: Exception) {
             false
         }
-    }.toSet()
-
-    allPlotLogs.forEach { plotLog ->
-        try {
-            activeFileStores.addAll(
-                listOfNotNull(plotLog.tempDir1, plotLog.tempDir2)
-                    .map { Files.getFileStore(Paths.get(it)) }
-                    .filter { bigFileStores.contains(it) }
-            )
-        } catch (e: IOException) {
-            // ignore
-        }
-    }
-    println("Found ${bigFileStores.size} big stores, of which ${activeFileStores.size} are active: ${activeFileStores.joinToString()}")
-    check(activeFileStores.isNotEmpty()) { "Must have at least one active file store to watch." }
-
-    println()
-    printlnt("time_ms", "event_type", "Store", "used", "avail")
-    logFileStoreSpace() // hide the past events
-    runBlocking {
-        while (true) {
-            logFileStoreSpace()
-            delay(Duration.minutes(1).toLong(DurationUnit.MILLISECONDS))
-        }
-    }
-}
-
-private fun logFileStoreSpace() {
-    val now = System.currentTimeMillis()
-    PlotLog.loadLogs()
-        .forEach { plot ->
-            val logLine = listOf(now, "phase", plot.id, plot.latestFolder(), plot.latestPhase()).toTypedArray()
-            if (firstRun.get()) {
-                printlntOnceSkip(*logLine)
-            } else {
-                printlntOnce(*logLine)
-            }
-        }
-    firstRun.set(false)
-
-    FileSystems.getDefault().fileStores
-        .filter { activeFileStores.contains(it) }
-        .forEach { store ->
-            val used = (store.totalSpace - store.unallocatedSpace) / BYTES_GB
-            val avail = store.usableSpace / BYTES_GB
-            printlnt(now, "space", store, used, avail)
-        }
+    }.toSet().also { println("Found ${it.size} big file stores.") }
 }
 
 
-/**
- * A few days so we get some sense of parallel per day
- */
-@OptIn(ExperimentalTime::class)
-private fun parallelRate(plotLogs: Collection<CompletedPlotLog>, numberOfDays: Int = 3) {
-    println()
-    printlnt("Temp Dir", "plots/day over last $numberOfDays days")
-    val fewDaysAgoMs = System.currentTimeMillis() - Duration.days(numberOfDays).toDouble(DurationUnit.MILLISECONDS)
-    plotLogs.filter { it.lastModified > fewDaysAgoMs }
-        .groupBy { it.tempDir1 }
-        .toSortedMap()
-        .forEach { (tmpDir1, plots) ->
-            printlnt(tmpDir1, plots.size / numberOfDays.toDouble())
-        }
+private val allPlotLogs: List<PlotLog> by lazy { PlotLog.loadLogs().also { println("Found ${it.size} plot logs.") } }
+private val completedLogs: List<CompletedPlotLog> by lazy {
+    allPlotLogs.filterIsInstance<CompletedPlotLog>().also { println("Found ${it.size} completed plot logs.") }
 }
 
-/**
- * Generic timing per plot
- */
-@OptIn(ExperimentalTime::class)
-private fun completionTimes(plotLogs: Collection<CompletedPlotLog>) {
-    println()
-    printlnt("Temp Dir", "Total Completed", "Average (h)", "Most Recent (h)")
-    plotLogs
-        .groupBy { it.tempDir1 }
-        .toSortedMap()
-        .forEach { (tmpDir1, plots) ->
-            val avg = plots.map { it.totalDuration.toDouble(DurationUnit.HOURS) }.average()
-            val mostRecent = plots.maxByOrNull { it.lastModified }!!.totalDuration.toDouble(DurationUnit.HOURS)
-            printlnt(tmpDir1, plots.size, avg, mostRecent)
-        }
+// Recently used big locations
+internal val activeFileStores: List<FileStore> by lazy {
+    allPlotLogs.asSequence().map {
+        listOf(it.tempDir1, it.tempDir2)
+    }.flatten().filterNotNull().toSet()
+        .map { Files.getFileStore(Paths.get(it)) }
+        .filter { bigFileStores.contains(it) }.toList().also { println("Found ${it.size} active file stores.") }
 }
+
 
 internal const val BYTES_KB = 1024L
 internal const val BYTES_MB = BYTES_KB * BYTES_KB
