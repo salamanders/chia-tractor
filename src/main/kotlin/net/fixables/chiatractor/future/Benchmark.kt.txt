@@ -40,9 +40,7 @@ private fun benchmark(
     require(totalDataToWriteGB > 0) { "totalDataToWriteGB out of range >0" }
     val totalDataToWriteBytes = totalDataToWriteGB * BYTES_GB
     val bytesPerShard = totalDataToWriteBytes / sharding
-    val fileStore = Files.getFileStore(path.toRealPath())
-    val usableSpace = fileStore.usableSpace
-    println("FileStore: ${fileStore.name()}, Usable space: ${(usableSpace / BYTES_GB).toInt()}GB")
+
     check(usableSpace > totalDataToWriteBytes) { "Not enough free space." }
     benchmarkWrite(
         path = path,
@@ -124,9 +122,8 @@ private fun benchmarkSeekAndWrite(testDir: Path, trials: Int = 1_000): List<Dura
 
 @OptIn(ExperimentalTime::class)
 private fun Path.fillWithRandomData(size: Long, writeBlockSize: Long = BYTES_MB): Duration {
-    val fullBlock = ByteArray(writeBlockSize.toInt())
+
     var remainingBytes = size
-    var totalDuration: Duration = Duration.ZERO
 
     while (remainingBytes > 0) {
         val currentBlock = if (remainingBytes >= writeBlockSize) {
@@ -134,24 +131,12 @@ private fun Path.fillWithRandomData(size: Long, writeBlockSize: Long = BYTES_MB)
         } else {
             ByteArray(remainingBytes.toInt())
         }
-        FasterRandom.nextBytes(currentBlock)
-        totalDuration += measureTime {
-            Files.write(
-                this,
-                currentBlock,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.APPEND
-            )
-        }
+
         remainingBytes -= currentBlock.size
     }
     return totalDuration
 }
 
-
-@OptIn(ExperimentalTime::class)
-private fun Collection<Duration>.sum() = this.fold(Duration.ZERO, Duration::plus)
 
 
 

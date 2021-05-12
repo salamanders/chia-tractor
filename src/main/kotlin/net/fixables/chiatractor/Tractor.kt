@@ -21,7 +21,7 @@ fun main(vararg args: String) {
             println("Samples: ${timeToSpace.size}")
             val delayMinutes = packThemIn(
                 timeToSpaceSamples = timeToSpace,
-                availableSpaceGb = 780, // TODO: get this from the system
+                availableSpaceGb = 650, // TODO: get this from the system
             )
             println("Try plotting with a delay of $delayMinutes minutes.")
         }
@@ -37,6 +37,13 @@ fun main(vararg args: String) {
         args.contains("-r") -> {
             completionTimes(completedLogs)
             parallelRate(completedLogs)
+        }
+        args.contains("-b") -> {
+            val benchDir = File("./temp").canonicalFile.also { it.mkdirs() }
+            println("Time to write writeP1:${benchmarkDir(dirToBenchmark = benchDir, parallel = 1)}")
+            println("Time to write writeP2:${benchmarkDir(dirToBenchmark = benchDir, parallel = 2)}")
+            println("Time to write writeP5:${benchmarkDir(dirToBenchmark = benchDir, parallel = 5)}")
+            println("Time to write writeP10:${benchmarkDir(dirToBenchmark = benchDir, parallel = 10)}")
         }
         else -> {
             println("All output TSV-friendly. \nOptions:\n -l=calculate layouts\n -m=monitor free GB\n -r=read all plot logs")
@@ -72,9 +79,8 @@ internal val activeFileStores: List<FileStore> by lazy {
 }
 
 
-internal const val BYTES_KB = 1024L
+internal const val BYTES_KB = 1000L
 internal const val BYTES_MB = BYTES_KB * BYTES_KB
 internal const val BYTES_GB = BYTES_MB * BYTES_KB
-
 
 
